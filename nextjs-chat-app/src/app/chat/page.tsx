@@ -16,6 +16,7 @@ export default function ChatPage() {
   const { selectedModel, isSidebarOpen, toggleSidebar, setSidebarOpen } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
 
   // Set sidebar closed on mobile by default
   useEffect(() => {
@@ -46,10 +47,36 @@ export default function ChatPage() {
 
   // Send message mutation
   const sendMutation = trpc.chat.send.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Smoothly add AI response without touching user message
+      if (data?.assistantMessage) {
+        setLocalMessages(prev => {
+          // Find and update the temp user message with real ID (no re-render flicker)
+          const updated = prev.map(msg => {
+            if (msg.id.startsWith('temp-') && msg.role === 'user' && msg.content === data.userMessage?.content) {
+              // Update the ID but keep everything else the same
+              return { ...msg, id: data.userMessage.id };
+            }
+            return msg;
+          });
+          // Add AI response
+          return [...updated, data.assistantMessage];
+        });
+      }
+    },
+    onError: () => {
+      // Remove temporary message on error and refetch
+      setLocalMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
       refetch();
     },
   });
+
+  // Update local messages when server messages change or model changes
+  useEffect(() => {
+    if (messages) {
+      setLocalMessages(messages);
+    }
+  }, [messages, selectedModel]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -63,7 +90,7 @@ export default function ChatPage() {
   // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [localMessages]);
 
   const handleSendMessage = (message: string) => {
     if (!selectedModel) {
@@ -71,6 +98,19 @@ export default function ChatPage() {
       return;
     }
 
+    // Add user message to local state immediately
+    const userMessage = {
+      id: `temp-${Date.now()}`,
+      user_id: session?.user?.id || '',
+      model_tag: selectedModel,
+      role: 'user' as const,
+      content: message,
+      created_at: new Date().toISOString(),
+    };
+
+    setLocalMessages(prev => [...prev, userMessage]);
+
+    // Send to server
     sendMutation.mutate({
       modelTag: selectedModel,
       prompt: message,
@@ -123,7 +163,7 @@ export default function ChatPage() {
             </div>
           )}
 
-          {messages?.map((message) => (
+          {localMessages?.map((message) => (
             <ChatMessage
               key={message.id}
               message={message}
