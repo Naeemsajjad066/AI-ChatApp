@@ -5,7 +5,7 @@ import { trpc } from '@/lib/trpc';
 import { useChatStore } from '@/lib/store';
 
 export function ModelSelector() {
-  const { selectedModel, setSelectedModel } = useChatStore();
+  const { selectedModel, setSelectedModel, setSidebarOpen } = useChatStore();
   const { data: models, isLoading } = trpc.model.getAvailable.useQuery();
 
   if (isLoading || !models) {
@@ -17,12 +17,21 @@ export function ModelSelector() {
     label: model.name,
   }));
 
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedModel(e.target.value);
+    
+    // Close sidebar on mobile after selection
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
     <Select
       label="AI Model"
       options={options}
       value={selectedModel || ''}
-      onChange={(e) => setSelectedModel(e.target.value)}
+      onChange={handleChange}
     />
   );
 }

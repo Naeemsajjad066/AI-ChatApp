@@ -28,7 +28,7 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
         value={draftMessage}
         onChange={(e) => setDraftMessage(e.target.value)}
         placeholder="Type your message..."
-        className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] max-h-[200px]"
+        className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px] md:min-h-[80px] max-h-[200px]"
         disabled={isLoading || disabled}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
@@ -41,9 +41,9 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
         type="submit"
         size="icon"
         disabled={!draftMessage.trim() || isLoading || disabled}
-        className="h-[80px]"
+        className="h-[60px] md:h-[80px] w-[60px] md:w-[80px]"
       >
-        <Send className="h-4 w-4" />
+        <Send className="h-4 w-4 md:h-5 md:w-5" />
       </Button>
     </form>
   );
