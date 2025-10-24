@@ -4,6 +4,7 @@ import { LogOut, Moon, Sun, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { Loader } from '@/components/ui/Loader';
 import { trpc } from '@/lib/trpc';
 import { useChatStore } from '@/lib/store';
 import { ModelSelector } from './ModelSelector';
@@ -21,11 +22,23 @@ export function ChatSidebar() {
   });
 
   return (
-    <aside
-      className={`fixed md:static inset-y-0 left-0 z-40 w-64 bg-card border-r transform transition-transform duration-300 ease-in-out ${
-        isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      }`}
-    >
+    <>
+      {/* Logout Loader Overlay */}
+      {logoutMutation.isLoading && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <Loader
+            variant="spinner"
+            size="lg"
+            text="Logging out..."
+          />
+        </div>
+      )}
+
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-40 w-64 bg-card border-r transform transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
       <div className="flex flex-col h-full p-4 space-y-4">
         {/* Header with close button for mobile */}
         <div className="flex items-center justify-between">
@@ -68,5 +81,6 @@ export function ChatSidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

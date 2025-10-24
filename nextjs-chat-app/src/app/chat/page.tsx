@@ -287,12 +287,14 @@ export default function ChatPage() {
         </div>
 
         {/* Input */}
-        <div className="border-t p-4">
-          <ChatInput
-            onSend={handleSendMessage}
-            isLoading={sendMutation.isLoading}
-            disabled={!selectedModel}
-          />
+        <div className="border-t p-4 bg-card/50">
+          <div className="max-w-5xl mx-auto px-2 md:px-8">
+            <ChatInput
+              onSend={handleSendMessage}
+              isLoading={sendMutation.isLoading}
+              disabled={!selectedModel}
+            />
+          </div>
         </div>
       </main>
     </div>
