@@ -193,6 +193,111 @@ export const chatRouter = router({
     }),
 
   /**
+   * Edit a message and regenerate the AI response
+   */
+  editMessage: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.string(),
+        newContent: z.string().min(1, 'Message cannot be empty'),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify the message belongs to the user
+      const { data: message, error: fetchError } = await ctx.supabase
+        .from('messages')
+        .select('*')
+        .eq('id', input.messageId)
+        .single();
+
+      if (fetchError || !message) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Message not found',
+        });
+      }
+
+      if (message.user_id !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You can only edit your own messages',
+        });
+      }
+
+      if (message.role !== 'user') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'You can only edit user messages',
+        });
+      }
+
+      const now = new Date().toISOString();
+
+      // Update the user message
+      const { data: updatedMessage, error: updateError } = await ctx.supabase
+        .from('messages')
+        .update({
+          content: input.newContent,
+          created_at: now,
+        })
+        .eq('id', input.messageId)
+        .select()
+        .single();
+
+      if (updateError || !updatedMessage) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to update message',
+          cause: updateError,
+        });
+      }
+
+      // Generate new AI response
+      const aiResponse = await generateAIResponse(
+        message.model_tag,
+        input.newContent
+      );
+
+      // Find and delete the old assistant response (if exists)
+      await ctx.supabase
+        .from('messages')
+        .delete()
+        .eq('user_id', ctx.user.id)
+        .eq('model_tag', message.model_tag)
+        .eq('role', 'assistant')
+        .gt('created_at', message.created_at)
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      // Save new assistant response
+      const { data: assistantMessage, error: assistantError } =
+        await ctx.supabase
+          .from('messages')
+          .insert({
+            user_id: ctx.user.id,
+            model_tag: message.model_tag,
+            role: 'assistant',
+            content: aiResponse,
+            created_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+      if (assistantError || !assistantMessage) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to save assistant message',
+          cause: assistantError,
+        });
+      }
+
+      return {
+        userMessage: updatedMessage,
+        assistantMessage,
+      };
+    }),
+
+  /**
    * Delete a message (user can only delete their own messages)
    */
   deleteMessage: protectedProcedure

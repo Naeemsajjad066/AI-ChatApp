@@ -71,6 +71,71 @@ export default function ChatPage() {
     },
   });
 
+  // Edit message mutation
+  const editMutation = trpc.chat.editMessage.useMutation({
+    onSuccess: (data) => {
+      // Update the edited message and replace assistant response
+      if (data?.userMessage && data?.assistantMessage) {
+        setLocalMessages(prev => {
+          // Find the index of the user message being edited
+          const userMsgIndex = prev.findIndex(msg => msg.id === data.userMessage.id);
+          if (userMsgIndex === -1) return prev;
+
+          // Create new array with updated messages
+          const newMessages = [...prev];
+          
+          // Update user message
+          newMessages[userMsgIndex] = data.userMessage;
+          
+          // Find and remove old assistant message (next message after user message)
+          const assistantMsgIndex = newMessages.findIndex(
+            (msg, idx) => idx > userMsgIndex && msg.role === 'assistant'
+          );
+          
+          if (assistantMsgIndex !== -1) {
+            // Replace old assistant message with new one
+            newMessages[assistantMsgIndex] = data.assistantMessage;
+          } else {
+            // If no assistant message found, add it after user message
+            newMessages.splice(userMsgIndex + 1, 0, data.assistantMessage);
+          }
+          
+          return newMessages;
+        });
+      }
+    },
+    onError: () => {
+      refetch();
+    },
+  });
+
+  // Delete message mutation
+  const deleteMutation = trpc.chat.deleteMessage.useMutation({
+    onSuccess: (_, variables) => {
+      if (!variables) return;
+      
+      // Remove the deleted message and its response from local state
+      setLocalMessages(prev => {
+        const userMsgIndex = prev.findIndex(msg => msg.id === variables.messageId);
+        if (userMsgIndex === -1) return prev;
+
+        // Remove user message and the next assistant message
+        const newMessages = [...prev];
+        newMessages.splice(userMsgIndex, 1);
+        
+        // Remove the assistant response if it exists at the same index now
+        if (newMessages[userMsgIndex]?.role === 'assistant') {
+          newMessages.splice(userMsgIndex, 1);
+        }
+        
+        return newMessages;
+      });
+    },
+    onError: () => {
+      refetch();
+    },
+  });
+
   // Update local messages when server messages change or model changes
   useEffect(() => {
     if (messages) {
@@ -117,6 +182,25 @@ export default function ChatPage() {
     });
   };
 
+  const handleEditMessage = (messageId: string, newContent: string) => {
+    editMutation.mutate({
+      messageId,
+      newContent,
+    });
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    deleteMutation.mutate({
+      messageId,
+    });
+  };
+
+  // Find last user message
+  const lastUserMessageId = localMessages
+    .slice()
+    .reverse()
+    .find(msg => msg.role === 'user')?.id;
+
   if (sessionLoading || !isInitialized) {
     return (
       <Loader
@@ -129,7 +213,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden w-full">
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div
@@ -140,7 +224,7 @@ export default function ChatPage() {
 
       <ChatSidebar />
       
-      <main className="flex-1 flex flex-col w-full">
+      <main className="flex-1 flex flex-col w-full min-w-0">
         {/* Mobile Header with Menu Button */}
         <div className="md:hidden border-b bg-card p-4 flex items-center gap-3">
           <Button
@@ -150,37 +234,45 @@ export default function ChatPage() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold">
+          <h1 className="text-lg font-semibold truncate">
             {selectedModel || 'Select a Model'}
           </h1>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {!selectedModel && (
-            <div className="text-center text-muted-foreground py-8">
-              Please select an AI model to start chatting
-            </div>
-          )}
-
-          {localMessages?.map((message) => (
-            <ChatMessage
-              key={message.id}
-              message={message}
-              isUser={message.role === 'user'}
-            />
-          ))}
-
-          {sendMutation.isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-lg px-4 py-3 flex items-center gap-3">
-                <Loader variant="bars" size="sm" />
-                <p className="text-sm text-muted-foreground">AI is thinking...</p>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
+          <div className="max-w-4xl mx-auto px-2 md:px-8 space-y-4">
+            {!selectedModel && (
+              <div className="text-center text-muted-foreground py-8">
+                Please select an AI model to start chatting
               </div>
-            </div>
-          )}
+            )}
 
-          <div ref={messagesEndRef} />
+            {localMessages?.map((message) => (
+              <ChatMessage
+                key={message.id}
+                message={message}
+                isUser={message.role === 'user'}
+                isLastUserMessage={message.role === 'user' && message.id === lastUserMessageId}
+                onEdit={handleEditMessage}
+                onDelete={handleDeleteMessage}
+                isEditing={editMutation.isLoading}
+              />
+            ))}
+
+            {(sendMutation.isLoading || editMutation.isLoading) && (
+              <div className="flex justify-start">
+                <div className="bg-muted rounded-lg px-4 py-3 flex items-center gap-3">
+                  <Loader variant="bars" size="sm" />
+                  <p className="text-sm text-muted-foreground">
+                    {editMutation.isLoading ? 'Regenerating response...' : 'AI is thinking...'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
         {/* Input */}
