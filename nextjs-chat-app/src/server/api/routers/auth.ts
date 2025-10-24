@@ -103,23 +103,24 @@ export const authRouter = router({
 
   /**
    * Get the current user session
+   * Uses getUser() for secure authentication that verifies with Supabase Auth server
    */
   getSession: publicProcedure.query(async ({ ctx }) => {
     const {
-      data: { session },
-    } = await ctx.supabase.auth.getSession();
+      data: { user },
+      error,
+    } = await ctx.supabase.auth.getUser();
 
-    if (!session) {
+    if (error || !user) {
       return null;
     }
 
     return {
       user: {
-        id: session.user.id,
-        email: session.user.email!,
-        created_at: session.user.created_at,
+        id: user.id,
+        email: user.email!,
+        created_at: user.created_at,
       },
-      expires_at: session.expires_at,
     };
   }),
 

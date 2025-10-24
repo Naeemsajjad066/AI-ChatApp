@@ -5,6 +5,8 @@ interface ChatStore {
   // Selected model
   selectedModel: string | null;
   setSelectedModel: (model: string) => void;
+  isModelSwitching: boolean;
+  setModelSwitching: (switching: boolean) => void;
 
   // Draft message (saved before submit)
   draftMessage: string;
@@ -23,6 +25,8 @@ export const useChatStore = create<ChatStore>()(
       // Model selection
       selectedModel: null,
       setSelectedModel: (model) => set({ selectedModel: model }),
+      isModelSwitching: false,
+      setModelSwitching: (switching) => set({ isModelSwitching: switching }),
 
       // Draft message
       draftMessage: '',

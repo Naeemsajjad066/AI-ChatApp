@@ -27,6 +27,7 @@ export function ChatMessage({
   const [showMenu, setShowMenu] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleEdit = () => {
     setShowMenu(false);
@@ -47,20 +48,58 @@ export function ChatMessage({
   };
 
   const handleDelete = () => {
+    setShowMenu(false);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
     if (onDelete) {
       onDelete(message.id);
     }
-    setShowMenu(false);
+    setShowDeleteConfirm(false);
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
   };
 
   return (
-    <div
-      className={cn(
-        'flex w-full animate-fade-in relative group',
-        isUser ? 'justify-end' : 'justify-start',
-        isUser && 'pr-8'
+    <>
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in">
+            <h3 className="text-lg font-semibold mb-2">Delete Message</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Are you sure you want to delete this message? This will also delete the AI response. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={cancelDelete}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={confirmDelete}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
-    >
+
+      <div
+        className={cn(
+          'flex w-full animate-fade-in relative group',
+          isUser ? 'justify-end' : 'justify-start',
+          isUser && 'pr-8'
+        )}
+      >
       <div
         className={cn(
           'max-w-[85%] md:max-w-[75%] rounded-lg px-3 py-2 md:px-4 md:py-2 shadow-sm relative',
@@ -147,6 +186,7 @@ export function ChatMessage({
           </>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

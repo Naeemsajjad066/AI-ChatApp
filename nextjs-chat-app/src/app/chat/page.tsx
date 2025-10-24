@@ -13,7 +13,7 @@ import { useChatStore } from '@/lib/store';
 
 export default function ChatPage() {
   const router = useRouter();
-  const { selectedModel, isSidebarOpen, toggleSidebar, setSidebarOpen } = useChatStore();
+  const { selectedModel, isSidebarOpen, toggleSidebar, setSidebarOpen, isModelSwitching } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [localMessages, setLocalMessages] = useState<any[]>([]);
@@ -214,6 +214,17 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen overflow-hidden w-full">
+      {/* Model Switching Loader - Full page */}
+      {isModelSwitching && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <Loader
+            variant="spinner"
+            size="lg"
+            text="Switching model..."
+          />
+        </div>
+      )}
+
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div
@@ -224,7 +235,7 @@ export default function ChatPage() {
 
       <ChatSidebar />
       
-      <main className="flex-1 flex flex-col w-full min-w-0">
+      <main className="flex-1 flex flex-col w-full min-w-0 relative">
         {/* Mobile Header with Menu Button */}
         <div className="md:hidden border-b bg-card p-4 flex items-center gap-3">
           <Button

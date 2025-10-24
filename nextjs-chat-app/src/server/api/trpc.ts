@@ -11,15 +11,15 @@ import { createSupabaseServerClient } from '../db/client';
 export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
   const supabase = createSupabaseServerClient();
   
-  // Get the current user session
+  // Get the authenticated user (secure method that verifies with Supabase Auth server)
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
   return {
     supabase,
-    session,
-    user: session?.user ?? null,
+    user: user ?? null,
   };
 };
 
@@ -58,7 +58,7 @@ export const publicProcedure = t.procedure;
  * Throws an error if the user is not logged in
  */
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-  if (!ctx.session || !ctx.user) {
+  if (!ctx.user) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'You must be logged in to access this resource',
@@ -68,7 +68,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   return next({
     ctx: {
       ...ctx,
-      session: ctx.session,
       user: ctx.user,
     },
   });
