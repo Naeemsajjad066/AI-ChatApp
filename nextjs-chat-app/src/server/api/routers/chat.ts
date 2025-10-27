@@ -1,46 +1,27 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
-import OpenAI from 'openai';
-
-// Initialize OpenAI client (optional - will use stub if no API key)
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-  : null;
+import { generateGeminiResponse } from '@/lib/gemini';
+import { generateGitHubModelsResponse } from '@/lib/github-models';
 
 /**
- * Generate AI response using OpenAI or echo stub
+ * Generate AI response using GitHub Models, Gemini, or echo stub
  */
 async function generateAIResponse(
   modelTag: string,
   prompt: string
 ): Promise<string> {
-  // If OpenAI is configured, use it
-  if (openai) {
-    try {
-      const response = await openai.chat.completions.create({
-        model: modelTag,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
-      });
-
-      return response.choices[0]?.message?.content || 'No response generated';
-    } catch (error) {
-      console.error('OpenAI API error:', error);
-      // Fallback to echo stub on error
-      return `[OpenAI Error] You said: ${prompt}`;
-    }
+  // Use Gemini for gemini model
+  if (modelTag === 'gemini') {
+    return await generateGeminiResponse(prompt);
   }
 
-  // Echo stub fallback
+  // Use GitHub Models for chatgpt model
+  if (modelTag === 'chatgpt') {
+    return await generateGitHubModelsResponse(prompt);
+  }
+
+  // Echo stub fallback for any other models
   return `You said: ${prompt}`;
 }
 

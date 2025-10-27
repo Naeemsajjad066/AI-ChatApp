@@ -6,23 +6,16 @@ import { TRPCError } from '@trpc/server';
 const MOCK_MODELS = [
   {
     id: '1',
-    tag: 'gpt-4o',
-    name: 'GPT-4o',
-    description: 'Most capable model, best for complex tasks',
+    tag: 'gemini',
+    name: 'Gemini',
+    description: 'Google\'s most capable AI model',
     created_at: new Date().toISOString(),
   },
   {
     id: '2',
-    tag: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
-    description: 'Fast and powerful, great balance',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    tag: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
-    description: 'Quick and efficient for everyday tasks',
+    tag: 'chatgpt',
+    name: 'ChatGPT',
+    description: 'GPT-4 powered by GitHub Models',
     created_at: new Date().toISOString(),
   },
 ];

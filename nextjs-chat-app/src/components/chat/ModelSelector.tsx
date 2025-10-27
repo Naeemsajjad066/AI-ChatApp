@@ -23,10 +23,18 @@ export function ModelSelector() {
     return <div className="animate-pulse h-10 bg-muted rounded-md" />;
   }
 
-  const options = models.map((model) => ({
-    value: model.tag,
-    label: model.name,
-  }));
+  // Only include the two allowed models
+  const allowed = ['gemini', 'chatgpt'];
+  const filtered = models.filter((m) => allowed.includes(m.tag));
+
+  // If backend doesn't return them, use a fallback list
+  const options =
+    filtered.length > 0
+      ? filtered.map((model) => ({ value: model.tag, label: model.name }))
+      : [
+          { value: 'chatgpt', label: 'ChatGPT' },
+          { value: 'gemini', label: 'Gemini' },
+        ];
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newModel = e.target.value;
