@@ -175,4 +175,3 @@ src/
     ├── database.types.ts     # Supabase generated types
     └── index.ts              # Shared TypeScript types
 
-
