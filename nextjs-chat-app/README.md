@@ -10,7 +10,7 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to start chatting!
+
 
 > **Note**: The app includes pre-configured Supabase credentials and works out-of-the-box. For production, replace with your own Supabase project.
 
