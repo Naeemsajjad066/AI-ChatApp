@@ -111,7 +111,6 @@ This allows the app to be **fully testable and demo-able** without requiring exp
 - Created `chat_sessions` table with user and model relationships
 - Built `ChatSessionList` component with CRUD operations
 - Implemented session switching with preserved message history
-- Auto-title generation from first message
 - Added inline editing and delete confirmations
 
 **Technical Hurdles**:
@@ -175,9 +174,5 @@ src/
 └── types/
     ├── database.types.ts     # Supabase generated types
     └── index.ts              # Shared TypeScript types
-```
 
-## 🔑 Environment Variables
-
-Create a `.env.local` file with the following:
 
