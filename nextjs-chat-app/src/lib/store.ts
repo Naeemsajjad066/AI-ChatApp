@@ -8,6 +8,11 @@ interface ChatStore {
   isModelSwitching: boolean;
   setModelSwitching: (switching: boolean) => void;
 
+  // Chat session management (per model)
+  chatSessions: Record<string, string>; // modelTag -> sessionId
+  setCurrentChatSession: (sessionId: string | null) => void;
+  getCurrentChatSession: (modelTag?: string | null) => string | null;
+
   // Draft message (saved before submit)
   draftMessage: string;
   setDraftMessage: (message: string) => void;
@@ -21,12 +26,34 @@ interface ChatStore {
 
 export const useChatStore = create<ChatStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Model selection
       selectedModel: null,
       setSelectedModel: (model) => set({ selectedModel: model }),
       isModelSwitching: false,
       setModelSwitching: (switching) => set({ isModelSwitching: switching }),
+
+      // Chat session management (per model)
+      chatSessions: {},
+      setCurrentChatSession: (sessionId) => 
+        set((state) => {
+          const { selectedModel } = state;
+          if (!selectedModel) return state;
+          
+          const newChatSessions = { ...state.chatSessions };
+          if (sessionId) {
+            newChatSessions[selectedModel] = sessionId;
+          } else {
+            delete newChatSessions[selectedModel];
+          }
+          
+          return { chatSessions: newChatSessions };
+        }),
+      getCurrentChatSession: (modelTag) => {
+        const { chatSessions, selectedModel } = get();
+        const tagToUse = modelTag || selectedModel;
+        return tagToUse ? chatSessions[tagToUse] || null : null;
+      },
 
       // Draft message
       draftMessage: '',
@@ -43,6 +70,7 @@ export const useChatStore = create<ChatStore>()(
       name: 'chat-storage',
       partialize: (state) => ({
         selectedModel: state.selectedModel,
+        chatSessions: state.chatSessions,
         draftMessage: state.draftMessage,
       }),
     }

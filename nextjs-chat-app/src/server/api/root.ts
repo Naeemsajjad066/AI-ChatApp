@@ -1,6 +1,7 @@
 import { router } from './trpc';
 import { authRouter } from './routers/auth';
 import { chatRouter } from './routers/chat';
+import { chatSessionRouter } from './routers/chatSession';
 import { modelRouter } from './routers/model';
 
 /**
@@ -10,6 +11,7 @@ import { modelRouter } from './routers/model';
 export const appRouter = router({
   auth: authRouter,
   chat: chatRouter,
+  chatSession: chatSessionRouter,
   model: modelRouter,
 });
 

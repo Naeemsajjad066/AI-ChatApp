@@ -34,6 +34,7 @@ export const chatRouter = router({
     .input(
       z
         .object({
+          chatSessionId: z.string().uuid().optional(),
           modelTag: z.string().optional(),
           limit: z.number().min(1).max(100).default(50),
         })
@@ -47,6 +48,11 @@ export const chatRouter = router({
           .eq('user_id', ctx.user.id)
           .order('created_at', { ascending: false })
           .limit(input?.limit || 50);
+
+        // Filter by chat session if provided
+        if (input?.chatSessionId) {
+          query = query.eq('chat_session_id', input.chatSessionId);
+        }
 
         // Filter by model tag if provided
         if (input?.modelTag) {
@@ -67,6 +73,7 @@ export const chatRouter = router({
           id: msg.id,
           user_id: msg.user_id,
           model_tag: msg.model_tag,
+          chat_session_id: msg.chat_session_id,
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
           created_at: msg.created_at,
@@ -85,6 +92,7 @@ export const chatRouter = router({
       z.object({
         modelTag: z.string().min(1, 'Model tag is required'),
         prompt: z.string().min(1, 'Message cannot be empty'),
+        chatSessionId: z.string().uuid('Invalid session ID'),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -99,6 +107,7 @@ export const chatRouter = router({
           .insert({
             user_id: ctx.user.id,
             model_tag: input.modelTag,
+            chat_session_id: input.chatSessionId,
             role: 'user',
             content: input.prompt,
           })
@@ -116,6 +125,7 @@ export const chatRouter = router({
             .insert({
               user_id: ctx.user.id,
               model_tag: input.modelTag,
+              chat_session_id: input.chatSessionId,
               role: 'assistant',
               content: aiResponse,
             })

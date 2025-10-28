@@ -4,14 +4,10 @@ import superjson from 'superjson';
 import { ZodError } from 'zod';
 import { createSupabaseServerClient } from '../db/client';
 
-/**
- * Create context for tRPC requests
- * This runs for every request and provides the context to all procedures
- */
+
 export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
   const supabase = createSupabaseServerClient();
   
-  // Get the authenticated user (secure method that verifies with Supabase Auth server)
   const {
     data: { user },
     error,
@@ -23,12 +19,9 @@ export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
   };
 };
 
-// Infer the context type
 type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 
-/**
- * Initialize tRPC with context
- */
+
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
@@ -43,9 +36,7 @@ const t = initTRPC.context<Context>().create({
   },
 });
 
-/**
- * Create a server-side caller
- */
+
 export const createCallerFactory = t.createCallerFactory;
 
 /**
@@ -53,10 +44,7 @@ export const createCallerFactory = t.createCallerFactory;
  */
 export const publicProcedure = t.procedure;
 
-/**
- * Protected (authenticated) procedure
- * Throws an error if the user is not logged in
- */
+
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   if (!ctx.user) {
     throw new TRPCError({

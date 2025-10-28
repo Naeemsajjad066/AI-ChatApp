@@ -5,6 +5,7 @@ export interface ChatMessage {
   id: string;
   user_id: string;
   model_tag: string;
+  chat_session_id: string;
   role: ChatRole;
   content: string;
   created_at: string;
@@ -19,7 +20,16 @@ export interface AIModel {
 }
 
 export interface ChatSession {
-  modelTag: string;
+  id: string;
+  user_id: string;
+  model_tag: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatSessionWithMessages {
+  session: ChatSession;
   messages: ChatMessage[];
 }
 

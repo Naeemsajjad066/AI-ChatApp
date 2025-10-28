@@ -8,11 +8,12 @@ import { Loader } from '@/components/ui/Loader';
 import { trpc } from '@/lib/trpc';
 import { useChatStore } from '@/lib/store';
 import { ModelSelector } from './ModelSelector';
+import { ChatSessionList } from './ChatSessionList';
 
 export function ChatSidebar() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const { isSidebarOpen, setSidebarOpen } = useChatStore();
+  const { isSidebarOpen, setSidebarOpen, selectedModel } = useChatStore();
   
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
@@ -55,7 +56,10 @@ export function ChatSidebar() {
         
         <ModelSelector />
 
-        <div className="flex-1" />
+        {/* Chat Sessions List */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <ChatSessionList modelTag={selectedModel || undefined} />
+        </div>
 
         <div className="space-y-2">
           <Button

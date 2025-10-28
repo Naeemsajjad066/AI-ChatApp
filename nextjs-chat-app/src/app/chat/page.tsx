@@ -13,7 +13,10 @@ import { useChatStore } from '@/lib/store';
 
 export default function ChatPage() {
   const router = useRouter();
-  const { selectedModel, isSidebarOpen, toggleSidebar, setSidebarOpen, isModelSwitching } = useChatStore();
+  const { selectedModel, getCurrentChatSession, setCurrentChatSession, isSidebarOpen, toggleSidebar, setSidebarOpen, isModelSwitching } = useChatStore();
+  
+  // Get current chat session for selected model
+  const currentChatSession = getCurrentChatSession(selectedModel);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [localMessages, setLocalMessages] = useState<any[]>([]);
@@ -39,11 +42,21 @@ export default function ChatPage() {
   // Check auth
   const { data: session, isLoading: sessionLoading } = trpc.auth.getSession.useQuery();
   
-  // Get chat history
+  // Get chat history for current session
   const { data: messages, refetch } = trpc.chat.history.useQuery(
-    { modelTag: selectedModel || undefined },
-    { enabled: !!session }
+    { 
+      chatSessionId: currentChatSession || undefined,
+      modelTag: selectedModel || undefined 
+    },
+    { enabled: !!session && !!currentChatSession }
   );
+
+  // Create session mutation for first message
+  const createSession = trpc.chatSession.createSession.useMutation({
+    onSuccess: (newSession) => {
+      setCurrentChatSession(newSession.id);
+    },
+  });
 
   // Send message mutation
   const sendMutation = trpc.chat.send.useMutation({
@@ -136,12 +149,35 @@ export default function ChatPage() {
     },
   });
 
-  // Update local messages when server messages change or model changes
+  // Update local messages when server messages change or session changes
   useEffect(() => {
     if (messages) {
       setLocalMessages(messages);
+    } else if (currentChatSession === null) {
+      // Clear messages when session is cleared
+      setLocalMessages([]);
     }
-  }, [messages, selectedModel]);
+  }, [messages, currentChatSession]);
+
+  // Get user's sessions to auto-load the most recent one
+  const { data: userSessions } = trpc.chatSession.getUserSessions.useQuery(
+    { modelTag: selectedModel || undefined, limit: 1 },
+    { enabled: !!session && !!selectedModel && !currentChatSession }
+  );
+
+  // Auto-select the most recent session when user logs in or changes model
+  useEffect(() => {
+    if (userSessions && userSessions.length > 0 && !currentChatSession && selectedModel) {
+      const mostRecentSession = userSessions[0];
+      setCurrentChatSession(mostRecentSession.id);
+    }
+  }, [userSessions, currentChatSession, selectedModel, setCurrentChatSession]);
+
+  // Clear current session when model changes
+  useEffect(() => {
+    setCurrentChatSession(null);
+    setLocalMessages([]);
+  }, [selectedModel, setCurrentChatSession]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -157,17 +193,29 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [localMessages]);
 
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = async (message: string) => {
     if (!selectedModel) {
       alert('Please select a model first');
       return;
     }
+
+    // If no current session, prevent sending and alert user
+    if (!currentChatSession) {
+      return; // Disabled state will prevent this, but keep as safeguard
+    }
+
+    sendMessageWithSession(message);
+  };
+
+  const sendMessageWithSession = (message: string) => {
+    if (!currentChatSession || !selectedModel) return;
 
     // Add user message to local state immediately
     const userMessage = {
       id: `temp-${Date.now()}`,
       user_id: session?.user?.id || '',
       model_tag: selectedModel,
+      chat_session_id: currentChatSession,
       role: 'user' as const,
       content: message,
       created_at: new Date().toISOString(),
@@ -179,6 +227,7 @@ export default function ChatPage() {
     sendMutation.mutate({
       modelTag: selectedModel,
       prompt: message,
+      chatSessionId: currentChatSession,
     });
   };
 
@@ -259,6 +308,14 @@ export default function ChatPage() {
               </div>
             )}
 
+            {selectedModel && !currentChatSession && localMessages.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">
+                  No active chat session. Create a session to start chatting.
+                </p>
+              </div>
+            )}
+
             {localMessages?.map((message) => (
               <ChatMessage
                 key={message.id}
@@ -271,12 +328,17 @@ export default function ChatPage() {
               />
             ))}
 
-            {(sendMutation.isLoading || editMutation.isLoading) && (
+            {(sendMutation.isLoading || editMutation.isLoading || createSession.isLoading) && (
               <div className="flex justify-start">
                 <div className="bg-muted rounded-lg px-4 py-3 flex items-center gap-3">
                   <Loader variant="bars" size="sm" />
                   <p className="text-sm text-muted-foreground">
-                    {editMutation.isLoading ? 'Regenerating response...' : 'AI is thinking...'}
+                    {editMutation.isLoading 
+                      ? 'Regenerating response...' 
+                      : createSession.isLoading 
+                        ? 'Creating new chat...'
+                        : 'AI is thinking...'
+                    }
                   </p>
                 </div>
               </div>
@@ -291,8 +353,8 @@ export default function ChatPage() {
           <div className="max-w-5xl mx-auto px-2 md:px-8">
             <ChatInput
               onSend={handleSendMessage}
-              isLoading={sendMutation.isLoading}
-              disabled={!selectedModel}
+              isLoading={sendMutation.isLoading || createSession.isLoading}
+              disabled={!selectedModel || !currentChatSession}
             />
           </div>
         </div>
